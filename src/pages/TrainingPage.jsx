@@ -6,12 +6,12 @@ const TrainingPage = () => {
   const [filename, setFilename] = useState('');
   const [columns, setColumns] = useState([]);
   const [targetCol, setTargetCol] = useState('');
-  const [mode, setMode] = useState('auto');
+  const [mode, setMode] = useState('auto'); // 'auto' atau 'manual'
+  const [selectedModel, setSelectedModel] = useState('lr'); // Default model manual
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
 
   useEffect(() => {
-    // Ambil data yang dikirim dari halaman Upload
     const data = JSON.parse(localStorage.getItem('uploadData'));
     if (data) {
       setFilename(data.filename);
@@ -25,10 +25,14 @@ const TrainingPage = () => {
     setResult(null);
 
     try {
+      // Tentukan model_choice berdasarkan mode
+      const modelChoice = mode === 'auto' ? 'auto' : selectedModel;
+
       const payload = {
         filename: filename,
         target_column: targetCol,
-        task_type: "auto" // Backend akan mendeteksi otomatis
+        task_type: "auto", 
+        model_choice: modelChoice // <-- Kirim ke backend
       };
       
       const response = await api.trainModel(payload);
@@ -42,7 +46,6 @@ const TrainingPage = () => {
 
   return (
     <div className="training-container">
-      {/* Kartu Konfigurasi */}
       <div className="card">
         <h2>Konfigurasi Model ⚙️</h2>
         
@@ -73,12 +76,25 @@ const TrainingPage = () => {
           </div>
         </div>
 
+        {/* Dropdown hanya muncul jika mode Manual */}
+        {mode === 'manual' && (
+          <div className="form-group" style={{marginTop: '15px'}}>
+            <label>Pilih Algoritma:</label>
+            <select value={selectedModel} onChange={(e) => setSelectedModel(e.target.value)}>
+              <option value="lr">Logistic Regression / Linear Regression</option>
+              <option value="dt">Decision Tree</option>
+              <option value="rf">Random Forest</option>
+              <option value="gbc">Gradient Boosting</option>
+              <option value="nb">Naive Bayes</option>
+            </select>
+          </div>
+        )}
+
         <button onClick={handleTrain} disabled={loading} className="btn-train">
           {loading ? 'Sedang Melatih AI...' : 'Mulai Training 🚀'}
         </button>
       </div>
 
-      {/* Kartu Hasil */}
       {result && (
         <div className="card result-box">
           <h3>🎉 Training Selesai!</h3>
@@ -88,7 +104,8 @@ const TrainingPage = () => {
               {(result.accuracy * 100).toFixed(2)}%
             </h1>
           </div>
-          <p>Model disimpan di: <code>{result.model_path}</code></p>
+          <p>Model: <b>{result.model_name}</b></p>
+          <p>Lokasi: <code>{result.model_path}</code></p>
         </div>
       )}
     </div>
